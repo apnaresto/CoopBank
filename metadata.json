@@ -1,0 +1,6 @@
+{
+  "name": "Cooperative Bank Monitoring System",
+  "description": "An admin-only platform for Cooperative Bank's central admin to manage weekly uploads from each independent branch, monitor branch-wise client data, and produce performance reports.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
