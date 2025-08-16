@@ -1,94 +1,85 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Branch, UploadBatch } from '../types';
+import React, { useState, useEffect } from 'react';
+import * as ReactRouterDOM from 'react-router-dom';
+import { UploadBatch } from '../types';
 import { api } from '../services/mockApi';
 import { IconLoader } from './Icons';
-import { formatCurrency, getStatusBadgeStyle } from '../utils/helpers';
-import Table from './Table';
-import PaginationControls from './PaginationControls';
+import PageHeader from './PageHeader';
+import { useData } from '../contexts/DataContext';
+import UploadHealthGrid from './UploadHealthGrid';
+import UploadLogView from './UploadLogView';
+
 
 const UploadHistory: React.FC = () => {
+  const { branches, weekDates, loading: contextLoading } = useData();
   const [allUploads, setAllUploads] = useState<UploadBatch[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterBranch, setFilterBranch] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [searchParams, setSearchParams] = ReactRouterDOM.useSearchParams();
+  const activeTab = searchParams.get('view') || 'status';
+
+  // This effect will correct an invalid `view` parameter in the URL
+  useEffect(() => {
+    if (activeTab !== 'status' && activeTab !== 'log') {
+      setSearchParams({ view: 'status' }, { replace: true });
+    }
+  }, [activeTab, setSearchParams]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchUploads = async () => {
       setLoading(true);
       try {
-        const [uploadsData, branchesData] = await Promise.all([
-          api.getAllUploads(),
-          api.getBranches()
-        ]);
+        const uploadsData = await api.getAllUploads();
         setAllUploads(uploadsData.sort((a,b) => new Date(b.uploadTime).getTime() - new Date(a.uploadTime).getTime()));
-        setBranches(branchesData);
       } catch (error) {
         console.error("Failed to fetch upload history:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    fetchUploads();
   }, []);
 
-  const filteredUploads = useMemo(() => {
-    setCurrentPage(1); // Reset page when filter changes
-    if (filterBranch === 'all') {
-      return allUploads;
+  const handleTabChange = (tab: 'status' | 'log') => {
+      setSearchParams({ view: tab });
+  };
+
+  const renderContent = () => {
+    if (loading || contextLoading) {
+      return <div className="flex justify-center items-center h-96"><IconLoader className="animate-spin h-10 w-10 text-brand-blue-600"/></div>;
     }
-    return allUploads.filter(upload => upload.branchId === filterBranch);
-  }, [allUploads, filterBranch]);
+    
+    if (activeTab === 'status') {
+      return <UploadHealthGrid branches={branches} uploads={allUploads} weekDates={weekDates} />;
+    }
+    
+    if (activeTab === 'log') {
+      const branchFilter = searchParams.get('branch');
+      const weekFilter = searchParams.get('week');
+      return <UploadLogView uploads={allUploads} branchFilter={branchFilter} weekFilter={weekFilter} />;
+    }
 
-  const totalPages = Math.ceil(filteredUploads.length / itemsPerPage);
-
-  const paginatedUploads = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredUploads.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredUploads, currentPage, itemsPerPage]);
-
-
-  const getBranchName = (branchId: string) => branches.find(b => b.id === branchId)?.name || 'Unknown';
-  
-  if (loading) {
-    return <div className="flex justify-center items-center h-full"><IconLoader className="animate-spin h-10 w-10 text-brand-blue-600"/></div>;
-  }
-
-  const tableHeaders = ['Branch', 'Week Ending', 'Version', 'Status', 'Upload Time', 'Total CR', 'Total DR'];
-  const tableData = paginatedUploads.map(upload => [
-      getBranchName(upload.branchId),
-      upload.weekEnding,
-      `v${upload.version}`,
-      <span className={getStatusBadgeStyle(upload.status)}>{upload.status}</span>,
-      new Date(upload.uploadTime).toLocaleString(),
-      <span className="font-medium text-emerald-600 text-right block">{formatCurrency(upload.totalCR)}</span>,
-      <span className="font-medium text-rose-600 text-right block">{formatCurrency(upload.totalDR)}</span>
-  ]);
-
+    // Return a loader or null while the useEffect corrects the URL
+    return <div className="flex justify-center items-center h-96"><IconLoader className="animate-spin h-10 w-10 text-brand-blue-600"/></div>;
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-5 border-b border-slate-200 flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-slate-800">Complete Upload History</h3>
-        <div>
-          <label htmlFor="branch-filter" className="sr-only">Filter by branch</label>
-          <select id="branch-filter" value={filterBranch} onChange={e => setFilterBranch(e.target.value)} className="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-brand-blue-500 focus:border-brand-blue-500 block w-full p-2.5">
-            <option value="all">All Branches</option>
-            {branches.map(branch => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
-          </select>
-        </div>
-      </div>
-      <Table headers={tableHeaders} data={tableData} />
-      <PaginationControls
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        itemsPerPage={itemsPerPage}
-        onItemsPerPageChange={setItemsPerPage}
-        totalItems={filteredUploads.length}
-        itemName="uploads"
+    <div className="space-y-6">
+      <PageHeader
+        title="Upload Monitoring"
+        description="Track weekly data submission status across all branches or review the complete historical log."
       />
+      
+      <div className="border-b border-slate-200">
+        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+          <button onClick={() => handleTabChange('status')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'status' ? 'border-brand-blue-500 text-brand-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>
+              Weekly Upload Status
+          </button>
+          <button onClick={() => handleTabChange('log')} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'log' ? 'border-brand-blue-500 text-brand-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>
+              Upload Log
+          </button>
+        </nav>
+      </div>
+
+      {renderContent()}
     </div>
   );
 };

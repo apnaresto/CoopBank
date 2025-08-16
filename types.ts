@@ -1,4 +1,3 @@
-
 export interface AccountTypeInfo {
   id: string;
   name: string;
@@ -12,6 +11,7 @@ export interface AccountCategoryInfo {
 
 export interface Branch {
   id: string;
+  code: string;
   name: string;
   location: string;
   managerId: string | null;
@@ -19,7 +19,7 @@ export interface Branch {
 }
 
 export interface RM {
-  id: string;
+  id:string;
   name: string;
   code: string;
   branchId: string;
@@ -44,7 +44,7 @@ export interface FamilyGroup {
 }
 
 export interface ClientProfile {
-  id: string; // PAN_Primary
+  id: string; // PAN_Primary + _ + branchId
   branchId: string;
   rmId: string;
   branchManagerId: string;
@@ -65,13 +65,13 @@ export interface ClientProfile {
   address3: string | null;
   address4: string | null;
   city: string;
+  district: string | null;
   state: string;
   country: string;
   pinCode: string;
   // Contact Details
   contactMobile: string;
   contactEmail: string;
-  contactDob: string; // YYYY-MM-DD
   // Bank Details
   bankName: string;
   bankAcNo: string;
@@ -91,6 +91,8 @@ export interface ClientProfile {
   // Optional fields for weekly report
   weeklyCr?: number;
   weeklyDr?: number;
+  // Deviation Tracking
+  setBalance?: number;
 }
 
 export interface WeeklyTransactionHistory {
@@ -99,6 +101,8 @@ export interface WeeklyTransactionHistory {
     weeklyDr: number;
     closingBalance: number;
 }
+
+export type UploadStatus = 'Active' | 'Corrected' | 'Pending' | 'Missing';
 
 export interface UploadBatch {
   id: string;
@@ -148,4 +152,109 @@ export interface FamilyGroupData {
   groupName: string;
   clients: number;
   combinedBalance: number;
+}
+
+export interface SoftwareVendor {
+  id: string;
+  name: string;
+  templateName: string;
+  schema: Partial<Record<keyof ClientProfile, string>>;
+}
+
+export interface Pincode {
+  id: string;
+  code: string;
+  city: string;
+  district: string;
+  state: string;
+  country: string;
+}
+
+// --- Deviation Tracking Interfaces ---
+
+export interface ClientDeviationInfo {
+  clientId: string;
+  pan: string;
+  name: string;
+  setBalance: number;
+  currentBalance: number;
+  deviationAmount: number;
+  deviationPercent: number;
+}
+
+export interface SetBalanceHistoryItem {
+    id: string;
+    date: string;
+    setBalance: number;
+    changedBy: string;
+    note: string;
+}
+
+export interface ClientDeviationHistoryItem {
+    week: string;
+    setBalance: number;
+    actualBalance: number;
+    deviationPercent: number;
+}
+
+export interface RMDeviationSummary {
+    rmId: string;
+    totalClientsManaged: number;
+    averageDeviation: number;
+    highDeviationCount: number; // Clients > 10% deviation
+}
+
+export interface FamilyGroupDeviationSummary {
+    groupId: string;
+    groupName: string;
+    memberCount: number;
+    totalSetBalance: number;
+    totalActualBalance: number;
+    averageDeviation: number;
+    members: ClientProfile[];
+}
+
+export interface PendingDeviation {
+    id: string;
+    clientId: string;
+    clientName: string;
+    pan: string;
+    branchId: string;
+    setBalance: number;
+    newBalance: number;
+    deviationPercent: number;
+    weekEnding: string;
+}
+
+// --- Client 360 View ---
+
+export interface ClientPortfolioSummary {
+    pan: string;
+    name: string;
+    totalPortfolioValue: number;
+    totalSetBalance: number;
+    netDeviationAmount: number;
+    netDeviationPercent: number;
+}
+
+export interface ActivityFeedItem {
+    id: string;
+    timestamp: string;
+    branchId: string;
+    pan: string;
+    activityType: 'DEVIATION_APPROVAL' | 'SET_BALANCE_UPDATE' | 'ASSIGNMENT_CHANGE';
+    description: string;
+    author: string;
+}
+
+export interface KycChangeItem {
+    id: string;
+    pan: string;
+    branchId: string;
+    timestamp: string;
+    fieldName: keyof ClientProfile;
+    oldValue: string | null;
+    newValue: string | null;
+    author: string;
+    uploadBatchId: string;
 }

@@ -23,6 +23,21 @@
                 '900': '#1e3a8a',
                 '950': '#172554',
               },
+            },
+            keyframes: {
+              'fade-in-down': {
+                '0%': {
+                  opacity: '0',
+                  transform: 'translateY(-10px)'
+                },
+                '100%': {
+                  opacity: '1',
+                  transform: 'translateY(0)'
+                },
+              }
+            },
+            animation: {
+              'fade-in-down': 'fade-in-down 0.3s ease-out'
             }
           }
         }
@@ -34,9 +49,14 @@
     "react/": "https://esm.sh/react@^19.1.1/",
     "react": "https://esm.sh/react@^19.1.1",
     "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "react-dom": "https://esm.sh/react-dom@^19.1.1",
+    "react-dom/client": "https://esm.sh/react-dom@^19.1.1/client",
+    "clsx": "https://esm.sh/clsx@^2.1.1",
     "lucide-react": "https://esm.sh/lucide-react@^0.535.0",
     "react-router-dom": "https://esm.sh/react-router-dom@^7.7.1",
     "recharts": "https://esm.sh/recharts@^3.1.0",
+    "react-is": "https://esm.sh/react-is@^18.3.1",
+    "react-smooth": "https://esm.sh/react-smooth@^2.0.1",
     "jspdf": "https://esm.sh/jspdf@^2.5.1",
     "jspdf-autotable": "https://esm.sh/jspdf-autotable@^3.8.2"
   }
@@ -46,6 +66,7 @@
 </head>
   <body class="bg-slate-100 antialiased">
     <div id="root"></div>
+    <div id="modal-root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

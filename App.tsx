@@ -1,6 +1,7 @@
 
+
 import React, { useState, useMemo } from 'react';
-import { HashRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import * as ReactRouterDOM from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import Upload from './components/Upload';
 import UploadHistory from './components/UploadHistory';
@@ -8,8 +9,14 @@ import BranchReport from './components/BranchReport';
 import PanSearch from './components/PanSearch';
 import ClientDashboard from './components/ClientDashboard';
 import Management from './components/Management';
+import ManagementDetail from './components/ManagementDetail';
 import BranchManagement from './components/BranchManagement';
-import { IconDashboard, IconUpload, IconHistory, IconReports, IconBranch, IconSearch, IconUserSearch, IconUsers } from './components/Icons';
+import Utilities from './components/Utilities';
+import { IconDashboard, IconUpload, IconHistory, IconReports, IconBranch, IconSearch, IconUserSearch, IconUsers, IconWrench } from './components/Icons';
+import { DataProvider, useData } from './contexts/DataContext';
+import GlobalSearch from './components/GlobalSearch';
+import UserProfileDropdown from './components/UserProfileDropdown';
+import Client360Modal from './components/Client360Modal';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: IconDashboard },
@@ -18,18 +25,20 @@ const navItems = [
   { path: '/upload', label: 'Import Data', icon: IconUpload },
   { path: '/history', label: 'Upload History', icon: IconHistory },
   { path: '/reports', label: 'Branch Reports', icon: IconReports },
-  { path: '/clients', label: 'Clients', icon: IconUserSearch },
-  { path: '/search', label: 'PAN Search', icon: IconSearch },
+  { path: '/clients', label: 'Clients', icon: IconUserSearch, hidden: true },
+  { path: '/pan-search', label: 'PAN Search', icon: IconSearch, legacy: true }, // Keep route but hide from nav
+  { path: '/utilities', label: 'Utilities', icon: IconWrench },
 ];
 
 const Sidebar: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredNavItems = useMemo(() => {
+        const visibleItems = navItems.filter(item => !item.hidden && !item.legacy);
         if (!searchTerm) {
-            return navItems;
+            return visibleItems;
         }
-        return navItems.filter(item =>
+        return visibleItems.filter(item =>
             item.label.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [searchTerm]);
@@ -37,8 +46,10 @@ const Sidebar: React.FC = () => {
   return (
     <div className="w-64 bg-slate-900 text-slate-200 flex flex-col">
       <div className="h-16 flex items-center justify-center bg-slate-950 flex-shrink-0">
-        <IconBranch className="h-8 w-8 text-brand-blue-400" />
-        <h1 className="ml-3 text-xl font-bold text-slate-100">CoopBank Admin</h1>
+         <ReactRouterDOM.Link to="/" className="flex items-center">
+            <IconBranch className="h-8 w-8 text-brand-blue-400" />
+            <h1 className="ml-3 text-xl font-bold text-slate-100">CoopBank Admin</h1>
+        </ReactRouterDOM.Link>
       </div>
       <div className="p-4 flex-shrink-0">
         <div className="relative">
@@ -54,10 +65,10 @@ const Sidebar: React.FC = () => {
       </div>
       <nav className="flex-1 px-4 pb-6 space-y-2 overflow-y-auto">
         {filteredNavItems.map((item) => (
-          <NavLink
+          <ReactRouterDOM.NavLink
             key={item.path}
             to={item.path}
-            end={item.path === '/'} // Important for proper active state matching
+            end={item.path === '/'}
             className={({ isActive }) =>
               `flex items-center px-4 py-2.5 text-sm font-medium rounded-md transition-colors duration-200 ${
                 isActive
@@ -68,7 +79,7 @@ const Sidebar: React.FC = () => {
           >
             <item.icon className="h-5 w-5 mr-3" />
             {item.label}
-          </NavLink>
+          </ReactRouterDOM.NavLink>
         ))}
       </nav>
     </div>
@@ -76,47 +87,58 @@ const Sidebar: React.FC = () => {
 };
 
 const Header: React.FC = () => {
-  const location = useLocation();
-  const currentNavItem = navItems.find(item => location.pathname === '/' ? item.path === '/' : item.path !== '/' && location.pathname.startsWith(item.path));
-  let title = currentNavItem?.label || 'Dashboard';
-  if (location.pathname.startsWith('/reports/')) {
-    title = 'Branch Report';
-  } else if (location.pathname.startsWith('/clients/')) {
-    title = 'Client Dashboard';
-  }
-
-
   return (
-    <header className="bg-white shadow-sm h-16 flex items-center px-6">
-      <h2 className="text-2xl font-semibold text-slate-800">{title}</h2>
+    <header className="bg-white shadow-sm h-16 flex items-center justify-between px-6 gap-4">
+      <GlobalSearch />
+      <UserProfileDropdown />
     </header>
   );
 };
 
+const MainApp: React.FC = () => {
+  const { viewingClientPan, setViewClientPan } = useData();
+
+  return (
+    <div className="flex h-screen bg-slate-100">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-6 relative">
+          <ReactRouterDOM.Routes>
+            <ReactRouterDOM.Route path="/" element={<Dashboard />} />
+            <ReactRouterDOM.Route path="/branch-management" element={<BranchManagement />} />
+            <ReactRouterDOM.Route path="/upload" element={<Upload />} />
+            <ReactRouterDOM.Route path="/history" element={<UploadHistory />} />
+            <ReactRouterDOM.Route path="/pan-search" element={<PanSearch />} />
+            <ReactRouterDOM.Route path="/clients" element={<ClientDashboard />} />
+            <ReactRouterDOM.Route path="/clients/:pan" element={<ClientDashboard />} />
+            <ReactRouterDOM.Route path="/reports" element={<BranchReport />} />
+            <ReactRouterDOM.Route path="/reports/:branchId" element={<BranchReport />} />
+            <ReactRouterDOM.Route path="/management" element={<Management />} />
+            <ReactRouterDOM.Route path="/management/:category" element={<ManagementDetail />} />
+            <ReactRouterDOM.Route path="/utilities" element={<Utilities />} />
+          </ReactRouterDOM.Routes>
+          
+          {viewingClientPan && (
+            <Client360Modal
+              pan={viewingClientPan}
+              onClose={() => setViewClientPan(null)}
+            />
+          )}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+
 const App: React.FC = () => {
   return (
-    <HashRouter>
-      <div className="flex h-screen bg-slate-100">
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Header />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-6">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/branch-management" element={<BranchManagement />} />
-              <Route path="/upload" element={<Upload />} />
-              <Route path="/history" element={<UploadHistory />} />
-              <Route path="/search" element={<PanSearch />} />
-              <Route path="/clients" element={<ClientDashboard />} />
-              <Route path="/clients/:pan" element={<ClientDashboard />} />
-              <Route path="/reports" element={<BranchReport />} />
-              <Route path="/reports/:branchId" element={<BranchReport />} />
-              <Route path="/management" element={<Management />} />
-            </Routes>
-          </main>
-        </div>
-      </div>
-    </HashRouter>
+    <ReactRouterDOM.HashRouter>
+      <DataProvider>
+        <MainApp />
+      </DataProvider>
+    </ReactRouterDOM.HashRouter>
   );
 };
 

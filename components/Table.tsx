@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface TableProps {
@@ -5,9 +6,10 @@ interface TableProps {
   data: (string | number | React.ReactNode)[][];
   renderCell?: (data: any, rowIndex: number, cellIndex: number) => React.ReactNode;
   emptyStateMessage?: string;
+  getRowClassName?: (rowData: any) => string;
 }
 
-const Table: React.FC<TableProps> = ({ headers, data, renderCell, emptyStateMessage = "No data available." }) => {
+const Table: React.FC<TableProps> = ({ headers, data, renderCell, emptyStateMessage = "No data available.", getRowClassName }) => {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left text-slate-500">
@@ -22,7 +24,7 @@ const Table: React.FC<TableProps> = ({ headers, data, renderCell, emptyStateMess
         </thead>
         <tbody>
           {data.map((row, rowIndex) => (
-            <tr key={rowIndex} className="bg-white border-b hover:bg-slate-50">
+            <tr key={rowIndex} className={`border-b hover:bg-slate-50 ${getRowClassName ? getRowClassName(row) : 'bg-white'}`}>
               {row.map((cell, cellIndex) => (
                 <td key={cellIndex} className={`px-6 py-4 ${cellIndex === 0 ? 'font-medium text-slate-900 whitespace-nowrap' : ''}`}>
                   {renderCell ? renderCell(cell, rowIndex, cellIndex) : cell}

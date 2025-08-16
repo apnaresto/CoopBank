@@ -1,4 +1,3 @@
-
 export const formatCurrency = (value: number) => 
   new Intl.NumberFormat('en-IN', { 
     style: 'currency', 
@@ -13,11 +12,34 @@ export const formatCurrencyShort = (value: number) => {
     return `₹${value}`;
 }
 
-export const getStatusBadgeStyle = (status: 'Active' | 'Corrected' | 'Pending') => {
+export const getStatusBadgeStyle = (status: 'Active' | 'Corrected' | 'Pending' | 'Missing') => {
   const styles = {
     Active: 'bg-emerald-100 text-emerald-800',
     Corrected: 'bg-amber-100 text-amber-800',
     Pending: 'bg-rose-100 text-rose-800',
+    Missing: 'bg-slate-200 text-slate-600'
   };
   return `px-2 py-1 text-xs font-medium rounded-full ${styles[status]}`;
+};
+
+export const formatTimeAgo = (date: Date): string => {
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  let interval = seconds / 31536000;
+  if (interval > 1) return `${Math.floor(interval)} years ago`;
+  
+  interval = seconds / 2592000;
+  if (interval > 1) return `${Math.floor(interval)} months ago`;
+  
+  interval = seconds / 86400;
+  if (interval > 1) return `${Math.floor(interval)} days ago`;
+
+  interval = seconds / 3600;
+  if (interval > 1) return `${Math.floor(interval)} hours ago`;
+
+  interval = seconds / 60;
+  if (interval > 1) return `${Math.floor(interval)} minutes ago`;
+
+  return `${Math.floor(seconds)} seconds ago`;
 };

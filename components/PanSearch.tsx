@@ -4,6 +4,7 @@ import { api } from '../services/mockApi';
 import { ClientProfile, AccountCategoryInfo } from '../types';
 import { IconSearch, IconLoader, IconAlertTriangle } from './Icons';
 import { formatCurrency } from '../utils/helpers';
+import PageHeader from './PageHeader';
 
 const DetailItem: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-slate-200">
@@ -59,9 +60,11 @@ const PanSearch: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
+        <PageHeader 
+            title="Search Client by PAN"
+            description="Enter a client's Primary PAN to retrieve their full profile. Note: The global search in the header is now the recommended way to find clients."
+        />
       <div className="bg-white rounded-lg shadow p-8">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">Search Client by PAN</h2>
-        <p className="text-slate-500 mb-6">Enter a client's Primary PAN to retrieve their full profile.</p>
         <form onSubmit={handleSearch} className="flex items-center gap-2">
           <input
             type="text"
@@ -105,7 +108,6 @@ const PanSearch: React.FC = () => {
                  <Section title="Contact Details">
                     <DetailItem label="Mobile" value={result.contactMobile} />
                     <DetailItem label="Email" value={result.contactEmail} />
-                    <DetailItem label="Date of Birth" value={result.contactDob} />
                 </Section>
                  <Section title="External Bank Details">
                     <DetailItem label="Bank Name" value={result.bankName} />
@@ -118,6 +120,7 @@ const PanSearch: React.FC = () => {
                 <Section title="Communication Details">
                     <DetailItem label="Address" value={<div className="text-right">{[result.address1, result.address2, result.address3, result.address4].filter(Boolean).join(', ')}</div>} />
                     <DetailItem label="City" value={result.city} />
+                    <DetailItem label="District" value={result.district} />
                     <DetailItem label="PIN Code" value={result.pinCode} />
                     <DetailItem label="State" value={result.state} />
                     <DetailItem label="Country" value={result.country} />

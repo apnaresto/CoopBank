@@ -30,6 +30,23 @@ import {
   Edit,
   Shapes,
   Tags,
+  Wrench,
+  MapPin,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  FileJson,
+  User,
+  LogOut,
+  ShieldCheck,
+  TrendingUp,
+  TrendingDown,
+  HelpCircle,
+  Phone,
+  Mail,
+  Home,
+  Landmark,
+  FileEdit,
 } from 'lucide-react';
 
 export const IconDashboard = LayoutDashboard;
@@ -62,3 +79,20 @@ export const IconTrash = Trash2;
 export const IconEdit = Edit;
 export const IconShapes = Shapes;
 export const IconTags = Tags;
+export const IconWrench = Wrench;
+export const IconMapPin = MapPin;
+export const IconCalendarDays = CalendarDays;
+export const IconChevronLeft = ChevronLeft;
+export const IconChevronRight = ChevronRight;
+export const IconFileJson = FileJson;
+export const IconUser = User;
+export const IconLogOut = LogOut;
+export const IconShieldCheck = ShieldCheck;
+export const IconTrendingUp = TrendingUp;
+export const IconTrendingDown = TrendingDown;
+export const IconHelpCircle = HelpCircle;
+export const IconPhone = Phone;
+export const IconMail = Mail;
+export const IconHome = Home;
+export const IconBank = Landmark;
+export const IconFileEdit = FileEdit;

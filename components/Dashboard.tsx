@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Branch, UploadBatch, DashboardStats } from '../types';
+import * as ReactRouterDOM from 'react-router-dom';
+import { UploadBatch, DashboardStats } from '../types';
 import { api } from '../services/mockApi';
-import { IconUsers, IconWallet, IconArrowRightLeft, IconCheckCircle, IconAlertTriangle, IconFileClock, IconLoader } from './Icons';
-import { formatCurrency, getStatusBadgeStyle } from '../utils/helpers';
+import { IconUsers, IconWallet, IconArrowRightLeft, IconCheckCircle, IconAlertTriangle, IconFileClock, IconLoader, IconLineChart } from './Icons';
+import { formatCurrency, getStatusBadgeStyle, formatCurrencyShort } from '../utils/helpers';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Table from './Table';
+import PageHeader from './PageHeader';
+import { useData } from '../contexts/DataContext';
 
 interface StatCardProps {
   icon: React.ElementType;
@@ -25,7 +28,7 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, title, value, iconBgCol
   </div>
 );
 
-const BranchSelector: React.FC<{ branches: Branch[], selectedBranch: string, onSelectBranch: (id: string) => void }> = ({ branches, selectedBranch, onSelectBranch }) => (
+const BranchSelector: React.FC<{ branches: {id: string, name: string}[], selectedBranch: string, onSelectBranch: (id: string) => void }> = ({ branches, selectedBranch, onSelectBranch }) => (
     <div className="max-w-xs">
         <select
             id="branch"
@@ -42,46 +45,48 @@ const BranchSelector: React.FC<{ branches: Branch[], selectedBranch: string, onS
 
 
 const Dashboard: React.FC = () => {
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState<string>('b1');
+  const { branches, weekDates, loading: contextLoading, getBranchName } = useData();
+  const [selectedBranch, setSelectedBranch] = useState<string>('');
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [balanceHistory, setBalanceHistory] = useState<{week: string, balance: number}[]>([]);
   const [recentUploads, setRecentUploads] = useState<UploadBatch[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  useEffect(() => {
+    if (branches.length > 0 && !selectedBranch) {
+      setSelectedBranch(branches[0].id);
+    }
+  }, [branches, selectedBranch]);
+
+  const fetchDashboardData = useCallback(async () => {
+    if (!selectedBranch || weekDates.length === 0) return;
+    setStatsLoading(true);
     try {
-        const branchesData = await api.getBranches();
-        setBranches(branchesData);
-        if (branchesData.length > 0) {
-             const defaultBranch = branchesData[0].id;
-             // Set the selected branch, or use the first one if not set
-             const currentSelected = selectedBranch || defaultBranch;
-             setSelectedBranch(currentSelected);
-
-            const [statsData, uploadsData] = await Promise.all([
-                api.getDashboardStats(currentSelected),
-                api.getRecentUploads(5)
-            ]);
-            setStats(statsData);
-            setRecentUploads(uploadsData);
-        }
+      const latestWeek = weekDates[0];
+      const [statsData, uploadsData, historyData] = await Promise.all([
+        api.getDashboardStats(selectedBranch, latestWeek),
+        api.getRecentUploads(5),
+        api.getBranchBalanceHistory(selectedBranch, 12)
+      ]);
+      setStats(statsData);
+      setRecentUploads(uploadsData);
+      setBalanceHistory(historyData);
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
     } finally {
-      setLoading(false);
+      setStatsLoading(false);
     }
-  }, [selectedBranch]);
+  }, [selectedBranch, weekDates]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (selectedBranch) {
+        fetchDashboardData();
+    }
+  }, [selectedBranch, fetchDashboardData]);
 
-  if (loading && !stats) {
+  if (contextLoading) {
     return <div className="flex justify-center items-center h-full"><IconLoader className="animate-spin h-10 w-10 text-brand-blue-600"/></div>;
   }
-
-  const getBranchName = (branchId: string) => branches.find(b => b.id === branchId)?.name || 'Unknown Branch';
   
   const uploadTableHeaders = ['Branch', 'Week Ending', 'Version', 'Status', 'Upload Time', 'CR/DR'];
   const uploadTableData = recentUploads.map(upload => [
@@ -97,21 +102,20 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-slate-700">Branch Overview</h2>
-        {branches.length > 0 && (
-          <div className="flex items-center space-x-4">
-            <BranchSelector branches={branches} selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} />
-            {selectedBranch && (
-              <Link to={`/reports/${selectedBranch}`} className="text-sm font-medium text-brand-blue-600 hover:underline whitespace-nowrap">
-                View Report &rarr;
-              </Link>
-            )}
-          </div>
-        )}
-      </div>
-
-      {stats?.uploadWarning && (
+      <PageHeader
+        title="Dashboard"
+        description="High-level overview of branch performance and recent activity."
+        actions={branches.length > 0 && selectedBranch && (
+            <div className="flex items-center space-x-4">
+              <BranchSelector branches={branches} selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} />
+              <ReactRouterDOM.Link to={`/reports/${selectedBranch}`} className="text-sm font-medium text-brand-blue-600 hover:underline whitespace-nowrap">
+                View Full Report &rarr;
+              </ReactRouterDOM.Link>
+            </div>
+          )}
+      />
+      
+      {statsLoading ? <div className="text-sm text-slate-500">Loading branch data...</div> : stats?.uploadWarning && (
         <div className="bg-rose-100 border-l-4 border-rose-500 text-rose-700 p-4 rounded-md flex items-center" role="alert">
           <IconAlertTriangle className="h-5 w-5 mr-3"/>
           <p><span className="font-bold">Warning:</span> {stats.uploadWarning}</p>
@@ -119,11 +123,33 @@ const Dashboard: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard icon={IconUsers} title="Total Clients" value={stats?.totalClients.toString() || '...'} iconBgColor="bg-sky-500" />
-        <StatCard icon={IconWallet} title="Total Balance" value={stats ? formatCurrency(stats.totalBalance) : '...'} iconBgColor="bg-emerald-500" />
-        <StatCard icon={IconArrowRightLeft} title="DR/CR Movement" value={stats ? formatCurrency(stats.netMovement) : '...'} iconBgColor="bg-amber-500" />
-        <StatCard icon={IconCheckCircle} title="Active Upload Version" value={stats?.activeUploadVersion || '...'} iconBgColor="bg-indigo-500" />
+        <StatCard icon={IconUsers} title="Total Clients" value={statsLoading ? '...' : (stats?.totalClients.toString() || '0')} iconBgColor="bg-sky-500" />
+        <StatCard icon={IconWallet} title="Total Balance" value={statsLoading ? '...' : (stats ? formatCurrency(stats.totalBalance) : '...')} iconBgColor="bg-emerald-500" />
+        <StatCard icon={IconArrowRightLeft} title="DR/CR Movement" value={statsLoading ? '...' : (stats ? formatCurrency(stats.netMovement) : '...')} iconBgColor="bg-amber-500" />
+        <StatCard icon={IconCheckCircle} title="Active Upload Version" value={statsLoading ? '...' : (stats?.activeUploadVersion || '-')} iconBgColor="bg-indigo-500" />
       </div>
+
+       <div className="bg-white rounded-lg shadow">
+          <div className="p-5 border-b border-slate-200">
+            <h3 className="text-lg font-semibold text-slate-800 flex items-center"><IconLineChart className="mr-2 h-5 w-5"/>Branch Balance Trend (Last 12 Weeks)</h3>
+          </div>
+          <div className="p-5 h-80">
+            {statsLoading ? (
+                 <div className="flex justify-center items-center h-full"><IconLoader className="animate-spin h-8 w-8 text-brand-blue-600"/></div>
+            ): (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={balanceHistory} margin={{ top: 5, right: 20, left: 30, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="week" tickFormatter={(tick) => tick.slice(5)} />
+                  <YAxis tickFormatter={formatCurrencyShort} domain={['dataMin - 100000', 'dataMax + 100000']}/>
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Legend />
+                  <Line type="monotone" dataKey="balance" name="Total Balance" stroke="#2563eb" strokeWidth={2} activeDot={{ r: 8 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
 
       <div className="bg-white rounded-lg shadow">
         <div className="p-5 border-b border-slate-200">
